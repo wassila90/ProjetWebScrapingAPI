@@ -84,4 +84,44 @@ ScrapingData <- rbind(AlbanyData,NewCastleData)
 
 
 
+## 1. API  pour recuperer les informations des deux villes New castle et albany, passant en parametre le code postal 
 
+
+
+dataapi <- function(i){
+  urlapi  <- paste("https://api.zippopotam.us/US/",i,sep="")
+  
+  apidata <- fromJSON(urlapi)
+  zip_code <- apidata$`post code`
+  place_name <- apidata$places$`place name`
+  state <- apidata$places$state
+  longitude <- apidata$places$longitude
+  latitude <- apidata$places$latitude
+  
+  Sys.sleep(runif(1,0.75,1.5))
+  return(c("zip_code"=i,
+           "place_name"=place_name,
+           "stata"=state,
+           "longitude"=longitude,
+           "latitude"=latitude))
+}
+
+recopilation <- data.frame(matrix(ncol=5))
+
+for(i in ScrapingData$zip_code)
+  recopilation <- rbind(recopilation, dataapi(i))
+
+
+recopilation<-recopilation[-1,]
+
+names(recopilation)<-c("zip_code","place_name","state","longitude","latitude")
+
+
+#Jeu de données final : jointure entre le dataframe de web scraping et le DataFrame de L`API
+DataFinal <- merge(ScrapingData,recopilation, 
+                   by.x="zip_code", by.y ="zip_code", all = TRUE)
+
+#Le jeu de données final en Format Tibble 
+DataFinal<- as_tibble(rownames_to_column(DataFinal))
+#enregestrer le Data frame en csv
+write.table(DataFinal, "DataFinal.csv", row.names=FALSE, sep="t",dec=",", na=" ")
